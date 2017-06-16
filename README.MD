@@ -1,0 +1,1 @@
+Add MovieDB key to API_PARAM variable on NetworkUtils.java before building this project
