@@ -18,6 +18,8 @@ package com.example.susiyanti.movieapp.utilities;
 import android.net.Uri;
 import android.util.Log;
 
+import com.example.susiyanti.movieapp.BuildConfig;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -32,8 +34,7 @@ public final class NetworkUtils {
 
     private static final String THEMOVIEDB_URL = "http://api.themoviedb.org/3/movie";
 
-    private static final String API_KEY = ""; //insert api key here
-
+    private static final String API_KEY = BuildConfig.MOVIE_DB_API_KEY;
     final static String API_PARAM = "api_key";
 
     public static URL buildUrl(String sortBY) {

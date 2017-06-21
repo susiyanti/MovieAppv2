@@ -32,7 +32,7 @@ public class DetailActivity extends AppCompatActivity {
         movieTitle.setText(m.getTitle());
         movieOverview.setText(m.getOverview());
         movieYear.setText(m.getRelease_date());
-        movieVote.setText(m.getVote_average()+"");
+        movieVote.setText(m.getVote_average()+" / 10");
         String imgUrl = "http://image.tmdb.org/t/p/w185/" + m.getPoster_path();
         Picasso.with(this).load(imgUrl).into(movieThumb);
     }
