@@ -1,1 +1,1 @@
-Add MovieDB key to API_PARAM variable on NetworkUtils.java before building this project
+Add MovieDBApiKey to [USER_HOME]/.gradle/gradle.properties file before building this project
