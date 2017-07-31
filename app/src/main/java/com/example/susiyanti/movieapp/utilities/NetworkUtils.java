@@ -55,6 +55,25 @@ public final class NetworkUtils {
         return url;
     }
 
+    public static URL buildUrl(String id, String s1) {
+        Uri builtUri = Uri.parse(THEMOVIEDB_URL).buildUpon()
+                .appendPath(id)
+                .appendPath(s1)
+                .appendQueryParameter(API_PARAM, API_KEY)
+                .build();
+
+        URL url = null;
+        try {
+            url = new URL(builtUri.toString());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        Log.v(TAG, "Built URI " + url);
+
+        return url;
+    }
+
     public static String getResponseFromHttpUrl(URL url) throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         try {

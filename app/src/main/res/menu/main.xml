@@ -8,4 +8,8 @@
     <item
         android:id="@+id/sort_top"
         android:title="@string/top" />
+
+    <item
+        android:id="@+id/sort_fav"
+        android:title="@string/fav" />
 </menu>
