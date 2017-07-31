@@ -1,5 +1,6 @@
 package com.example.susiyanti.movieapp;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -14,10 +15,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.example.susiyanti.movieapp.data.MovieContract;
 import com.example.susiyanti.movieapp.utilities.NetworkUtils;
 import com.squareup.picasso.Picasso;
 
@@ -46,6 +50,7 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
     private List<String> trailers;
     private List<String> trailersName;
     private List<String> reviews;
+    private Movie m;
 
     private static final int TRAILER_LOADER = 33;
     @Override
@@ -72,7 +77,7 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
         mRecyclerViewReview.setLayoutManager(layoutManager2);
 
         Intent intent = getIntent();
-        Movie m = intent.getParcelableExtra(Intent.EXTRA_TEXT);
+        m = intent.getParcelableExtra(Intent.EXTRA_TEXT);
         movieTitle.setText(m.getTitle());
         movieOverview.setText(m.getOverview());
         movieYear.setText(m.getRelease_date());
@@ -199,5 +204,30 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
         if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);
         }
+    }
+
+    public void onClickAddMovie(View view) {
+
+        // Insert new task data via a ContentResolver
+        // Create new empty ContentValues object
+        ContentValues contentValues = new ContentValues();
+        // Put the task description and selected mPriority into the ContentValues
+        contentValues.put(MovieContract.MovieEntry.COLUMN_ID, m.getId());
+        contentValues.put(MovieContract.MovieEntry.COLUMN_OVERVIEW, m.getOverview());
+        contentValues.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH, m.getPoster_path());
+        contentValues.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, m.getRelease_date());
+        contentValues.put(MovieContract.MovieEntry.COLUMN_TITLE, m.getTitle());
+        contentValues.put(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE, m.getVote_average());
+        // Insert the content values via a ContentResolver
+        Uri uri = getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, contentValues);
+
+        // Display the URI that's returned with a Toast
+        // [Hint] Don't forget to call finish() to return to MainActivity after this insert is complete
+        if(uri != null) {
+            Toast.makeText(getBaseContext(), uri.toString(), Toast.LENGTH_LONG).show();
+        }
+
+        // Finish activity (this returns back to MainActivity)
+        finish();
     }
 }

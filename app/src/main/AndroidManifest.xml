@@ -19,6 +19,13 @@
             </intent-filter>
         </activity>
         <activity android:name=".DetailActivity"></activity>
+
+        <provider
+            android:name="com.example.susiyanti.movieapp.data.MovieContentProvider"
+            android:authorities="com.example.susiyanti.movieapp"
+            android:exported="false"/>
     </application>
+
+
 
 </manifest>

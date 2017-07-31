@@ -1,6 +1,8 @@
 package com.example.susiyanti.movieapp;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.graphics.drawable.GradientDrawable;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -8,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import com.example.susiyanti.movieapp.data.MovieContract;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -22,7 +25,7 @@ import java.util.List;
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder>{
 
     private List<Movie> movieData = Collections.EMPTY_LIST;
-
+    private Cursor mCursor;
     private final MovieAdapterOnClickHandler mClickHandler;
 
     public interface MovieAdapterOnClickHandler {
@@ -64,18 +67,54 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
 
     @Override
     public void onBindViewHolder(MovieViewHolder holder, int position) {
-        String imgUrl = "http://image.tmdb.org/t/p/w185/" + movieData.get(position).getPoster_path();
+        String imgUrl = "http://image.tmdb.org/t/p/w185/";
+        if(movieData!=null) {
+           imgUrl +=  movieData.get(position).getPoster_path();
+            Log.d("not fav","ada moviedata");
+        }else{
+            // Indices for the _id, description, and priority columns
+            int idIndex = mCursor.getColumnIndex(MovieContract.MovieEntry._ID);
+            int posterPathIndex = mCursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_POSTER_PATH);
+
+            mCursor.moveToPosition(position); // get to the right location in the cursor
+
+            // Determine the values of the wanted data
+            final int id = mCursor.getInt(idIndex);
+            String posterpath = mCursor.getString(posterPathIndex);
+
+            imgUrl += posterpath;
+            Log.d("fav", "ada cursor "+mCursor.getCount());
+        }
         Picasso.with(holder.itemView.getContext()).load(imgUrl).into(holder.movieImg);
     }
 
     @Override
     public int getItemCount() {
-        if (null == movieData) return 0;
+        if (null == movieData)
+            if(null == mCursor)
+                return 0;
+            else
+                return mCursor.getCount();
         return movieData.size();
     }
 
     public void setMovieData(List<Movie> data){
         movieData = data;
         notifyDataSetChanged();
+    }
+
+    public Cursor swapCursor(Cursor c) {
+        // check if this cursor is the same as the previous cursor (mCursor)
+        if (mCursor == c) {
+            return null; // bc nothing has changed
+        }
+        Cursor temp = mCursor;
+        this.mCursor = c; // new cursor value assigned
+
+        //check if this is a valid cursor, then update the cursor
+        if (c != null) {
+            this.notifyDataSetChanged();
+        }
+        return temp;
     }
 }

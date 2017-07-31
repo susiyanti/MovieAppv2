@@ -2,6 +2,7 @@ package com.example.susiyanti.movieapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -21,7 +22,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.example.susiyanti.movieapp.data.MovieContract;
 import com.example.susiyanti.movieapp.utilities.NetworkUtils;
 
 import org.json.JSONArray;
@@ -31,7 +34,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler, LoaderManager.LoaderCallbacks<List<Movie>>{
+public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler, LoaderManager.LoaderCallbacks<Object>{
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static String sort_by = "popular";
@@ -57,14 +60,11 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         GridLayoutManager layoutManager = new GridLayoutManager(this, 2);
         mRecyclerView.setLayoutManager(layoutManager);
 
-        if(savedInstanceState != null){
+        if(savedInstanceState != null) {
             sort_by = savedInstanceState.getString("sort");
-            movies = savedInstanceState.getParcelableArrayList("movie");
-            mMovieAdapter.setMovieData(movies);
-        }else {
+        }
             getSupportLoaderManager().initLoader(MOVIE_LOADER, null, this);
             loadMovieData(sort_by);
-        }
     }
 
     private void loadMovieData(String sortedBy){
@@ -74,8 +74,10 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         LoaderManager loaderManager = getSupportLoaderManager();
         Loader<List<Movie>> movieLoader = loaderManager.getLoader(MOVIE_LOADER);
         if(movieLoader == null){
+            Log.d("fav", "first");
             loaderManager.initLoader(MOVIE_LOADER, queryBundle, this);
         }else{
+            Log.d("fav", "restart");
             loaderManager.restartLoader(MOVIE_LOADER, queryBundle, this);
         }
     }
@@ -100,8 +102,10 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     }
 
     @Override
-    public Loader<List<Movie>> onCreateLoader(int id, final Bundle args) {
-        return new AsyncTaskLoader<List<Movie>>(this) {
+    public Loader<Object> onCreateLoader(int id, final Bundle args) {
+        return new AsyncTaskLoader<Object>(this) {
+
+            Cursor mMovieData = null;
 
             @Override
             protected void onStartLoading() {
@@ -117,65 +121,93 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             }
 
             @Override
-            public List<Movie> loadInBackground() {
+            public Object loadInBackground() {
                 if (args.size() == 0) {
                     return null;
                 }
+                if(args.getString("sort").equals("fav")){
 
-                URL movieRequestUrl = NetworkUtils.buildUrl(args.getString("sort"));
-
-                try {
-                    ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                    NetworkInfo netInfo = cm.getActiveNetworkInfo();
-                    if( netInfo != null && netInfo.isConnectedOrConnecting()){
-                        String jsonResponse = NetworkUtils.getResponseFromHttpUrl(movieRequestUrl);
-                        JSONObject movieJson = new JSONObject(jsonResponse);
-                        JSONArray movieArray = movieJson.getJSONArray("results");
-
-                        List<Movie> movies = new ArrayList<Movie>();
-                        for (int i=0; i<movieArray.length(); i++){
-                            JSONObject movieData = movieArray.getJSONObject(i);
-                            Movie m = new Movie();
-                            m.setId(movieData.getInt("id"));
-                            m.setTitle(movieData.getString("title"));
-                            m.setOverview(movieData.getString("overview"));
-                            m.setPoster_path(movieData.getString("poster_path"));
-                            m.setVote_average(movieData.getDouble("vote_average"));
-                            m.setRelease_date(movieData.getString("release_date"));
-                            movies.add(m);
-                        }
-                        Log.d("Network", "Didlaman load");
-                        return movies;
-                    }else{
+                    try{
+                        Log.d("fav","ambil data dari db");
+                       return getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI,
+                                null,
+                                null,
+                                null,
+                                null);
+                    }catch (Exception e){
+                        Log.e(TAG, "Failed to asynchronously load data.");
+                        e.printStackTrace();
                         return null;
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return null;
+                }else {
+                    URL movieRequestUrl = NetworkUtils.buildUrl(args.getString("sort"));
+
+                    try {
+                        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+                        if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+                            String jsonResponse = NetworkUtils.getResponseFromHttpUrl(movieRequestUrl);
+                            JSONObject movieJson = new JSONObject(jsonResponse);
+                            JSONArray movieArray = movieJson.getJSONArray("results");
+
+                            List<Movie> movies = new ArrayList<Movie>();
+                            for (int i = 0; i < movieArray.length(); i++) {
+                                JSONObject movieData = movieArray.getJSONObject(i);
+                                Movie m = new Movie();
+                                m.setId(movieData.getInt("id"));
+                                m.setTitle(movieData.getString("title"));
+                                m.setOverview(movieData.getString("overview"));
+                                m.setPoster_path(movieData.getString("poster_path"));
+                                m.setVote_average(movieData.getDouble("vote_average"));
+                                m.setRelease_date(movieData.getString("release_date"));
+                                movies.add(m);
+                            }
+                            Log.d("Network", "Didlaman load");
+                            return movies;
+                        } else {
+                            return null;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                    }
                 }
             }
 
             @Override
-            public void deliverResult(List<Movie> data) {
-                movies = data;
+            public void deliverResult(Object data) {
+
+                if(data instanceof Cursor){
+                    Log.d("fav", "ada cursor "+((Cursor) data).getCount());
+                    mMovieData = (Cursor)data;
+                }else{
+                    movies = (List<Movie>) data;
+                }
                 super.deliverResult(data);
             }
         };
     }
 
     @Override
-    public void onLoadFinished(Loader<List<Movie>> loader, List<Movie> data) {
+    public void onLoadFinished(Loader<Object> loader,Object data) {
         mLoadingIndicator.setVisibility(View.INVISIBLE);
         if (data != null) {
             showMovieDataView();
-            mMovieAdapter.setMovieData(data);
+            if(data instanceof Cursor){
+                Log.d("fav", "ganti cursor");
+                mMovieAdapter.setMovieData(null);
+                mMovieAdapter.swapCursor((Cursor)data);
+            }else{
+                mMovieAdapter.setMovieData((List<Movie>) data);
+            }
+
         } else {
             showErrorMessage();
         }
     }
 
     @Override
-    public void onLoaderReset(Loader<List<Movie>> loader) {
+    public void onLoaderReset(Loader<Object> loader) {
 
     }
 
@@ -199,6 +231,12 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
                 sort_by = "top_rated";
                 loadMovieData(sort_by);
                 return true;
+            case R.id.sort_fav:
+                Toast.makeText(this,"fasv", Toast.LENGTH_SHORT);
+                Log.d("fav","muncullah");
+                sort_by = "fav";
+                loadMovieData(sort_by);
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -207,6 +245,5 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString("sort", sort_by);
-        outState.putParcelableArrayList("movie", (ArrayList<? extends Parcelable>) movies);
     }
 }
