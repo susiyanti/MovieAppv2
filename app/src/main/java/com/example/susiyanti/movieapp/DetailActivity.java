@@ -41,9 +41,11 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
     private TextView mErrorMessageDisplay;
     private ProgressBar mLoadingIndicator;
     private MovieTrailerAdapter movieTrailerAdapter;
+    private MovieReviewAdapter movieReviewAdapter;
 
     private List<String> trailers;
     private List<String> trailersName;
+    private List<String> reviews;
 
     private static final int TRAILER_LOADER = 33;
     @Override
@@ -61,9 +63,13 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
         mRecyclerViewTrailer = (RecyclerView) findViewById(R.id.recyclerview_trailer);
         mRecyclerViewReview = (RecyclerView) findViewById(R.id.recyclerview_review);
         movieTrailerAdapter = new MovieTrailerAdapter(this);
+        movieReviewAdapter = new MovieReviewAdapter();
         mRecyclerViewTrailer.setAdapter(movieTrailerAdapter);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        mRecyclerViewTrailer.setLayoutManager(layoutManager);
+        mRecyclerViewReview.setAdapter(movieReviewAdapter);
+        LinearLayoutManager layoutManager1 = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL,false);
+        LinearLayoutManager layoutManager2 = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL,false);
+        mRecyclerViewTrailer.setLayoutManager(layoutManager1);
+        mRecyclerViewReview.setLayoutManager(layoutManager2);
 
         Intent intent = getIntent();
         Movie m = intent.getParcelableExtra(Intent.EXTRA_TEXT);
@@ -81,14 +87,17 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
     private void showMovieDataView() {
         mErrorMessageDisplay.setVisibility(View.INVISIBLE);
         mRecyclerViewTrailer.setVisibility(View.VISIBLE);
+        mRecyclerViewReview.setVisibility(View.VISIBLE);
     }
 
     private void showErrorMessage() {
         mRecyclerViewTrailer.setVisibility(View.INVISIBLE);
+        mRecyclerViewReview.setVisibility(View.INVISIBLE);
         mErrorMessageDisplay.setVisibility(View.VISIBLE);
     }
 
     private void loadMovieData(Movie m) {
+        showMovieDataView();
         Bundle queryBundle = new Bundle();
         queryBundle.putInt("id", m.getId());
         LoaderManager loaderManager = getSupportLoaderManager();
@@ -126,7 +135,6 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
                     NetworkInfo netInfo = cm.getActiveNetworkInfo();
                     if( netInfo != null && netInfo.isConnectedOrConnecting()){
                         String jsonResponse = NetworkUtils.getResponseFromHttpUrl(movieRequestUrl);
-                        Log.d("Detail", jsonResponse);
                         JSONObject movieJson = new JSONObject(jsonResponse);
                         JSONArray trailerArray = movieJson.getJSONArray("results");
 
@@ -135,11 +143,21 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
 
                         for (int i=0; i<trailerArray.length(); i++){
                             JSONObject movieData = trailerArray.getJSONObject(i);
-                            Log.d("satu", movieData.getString("key")+" "+movieData.getString("name"));
                             trailers.add(movieData.getString("key"));
                             trailersName.add(movieData.getString("name"));
                         }
-                        Log.d("Network", "Didlaman load");
+
+                        movieRequestUrl = NetworkUtils.buildUrl(args.getInt("id")+"","reviews");
+                        jsonResponse = NetworkUtils.getResponseFromHttpUrl(movieRequestUrl);
+                        movieJson = new JSONObject(jsonResponse);
+                        trailerArray = movieJson.getJSONArray("results");
+
+                        reviews = new ArrayList<String>();
+
+                        for (int i=0; i<trailerArray.length(); i++){
+                            JSONObject movieData = trailerArray.getJSONObject(i);
+                            reviews.add(movieData.getString("content"));
+                        }
                         return "";
                     }else{
                         return null;
@@ -163,6 +181,7 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
         if (data != null) {
             showMovieDataView();
             movieTrailerAdapter.setMovieData(trailersName, trailers);
+            movieReviewAdapter.setMovieData(reviews);
         } else {
             showErrorMessage();
         }
@@ -176,7 +195,6 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
     @Override
     public void onClick(String t) {
         Uri webpage = Uri.parse(t);
-        Log.d("clci",t);
         Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
         if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);

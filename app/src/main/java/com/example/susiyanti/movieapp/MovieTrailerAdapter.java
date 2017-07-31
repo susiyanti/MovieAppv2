@@ -69,7 +69,7 @@ public class MovieTrailerAdapter extends RecyclerView.Adapter<MovieTrailerAdapte
         @Override
         public void onClick(View v) {
             int adapterPosition = getAdapterPosition();
-            String t = "www.youtube.com/watch?v="+trailerData.get(adapterPosition);
+            String t = "http://www.youtube.com/watch?v="+trailerData.get(adapterPosition);
             mClickHandler.onClick(t);
         }
     }
