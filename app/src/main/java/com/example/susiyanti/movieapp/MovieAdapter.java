@@ -49,7 +49,20 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         @Override
         public void onClick(View v) {
             int adapterPosition = getAdapterPosition();
-            Movie m = movieData.get(adapterPosition);
+            Movie m;
+            if(movieData != null){
+                m = movieData.get(adapterPosition);
+            }else{
+                mCursor.moveToPosition(adapterPosition);
+                m = new Movie();
+                m.setId(mCursor.getInt(mCursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_ID)));
+                m.setRelease_date(mCursor.getString(mCursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_RELEASE_DATE)));
+                m.setPoster_path(mCursor.getString(mCursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_POSTER_PATH)));
+                m.setOverview(mCursor.getString(mCursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_OVERVIEW)));
+                m.setTitle(mCursor.getString(mCursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE)));
+                m.setVote_average(mCursor.getDouble(mCursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE)));
+            }
+
             mClickHandler.onClick(m);
         }
     }
@@ -70,7 +83,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         String imgUrl = "http://image.tmdb.org/t/p/w185/";
         if(movieData!=null) {
            imgUrl +=  movieData.get(position).getPoster_path();
-            Log.d("not fav","ada moviedata");
         }else{
             // Indices for the _id, description, and priority columns
             int idIndex = mCursor.getColumnIndex(MovieContract.MovieEntry._ID);
@@ -83,7 +95,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
             String posterpath = mCursor.getString(posterPathIndex);
 
             imgUrl += posterpath;
-            Log.d("fav", "ada cursor "+mCursor.getCount());
         }
         Picasso.with(holder.itemView.getContext()).load(imgUrl).into(holder.movieImg);
     }

@@ -3,6 +3,7 @@ package com.example.susiyanti.movieapp;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -15,6 +16,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -39,6 +41,7 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
     private TextView movieYear;
     private TextView movieVote;
     private ImageView movieThumb;
+    private Button fav;
 
     private RecyclerView mRecyclerViewTrailer;
     private RecyclerView mRecyclerViewReview;
@@ -84,6 +87,60 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
         movieVote.setText(m.getVote_average()+" / 10");
         String imgUrl = "http://image.tmdb.org/t/p/w185/" + m.getPoster_path();
         Picasso.with(this).load(imgUrl).into(movieThumb);
+
+        fav = (Button)findViewById(R.id.add_fav);
+        final String mSelectionClause = MovieContract.MovieEntry.COLUMN_ID + " = ?";
+
+        final String mSelectionArgs[] = {m.getId()+""};
+        final Cursor mCursor = getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI,
+                null,
+                mSelectionClause,
+                mSelectionArgs,
+                null);
+        if(mCursor == null){
+            Log.e("detail", "ada error");
+        }else if(mCursor.getCount() < 1){
+            fav.setText("Mark as Favorite");
+            fav.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ContentValues contentValues = new ContentValues();
+
+                    contentValues.put(MovieContract.MovieEntry.COLUMN_ID, m.getId());
+                    contentValues.put(MovieContract.MovieEntry.COLUMN_OVERVIEW, m.getOverview());
+                    contentValues.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH, m.getPoster_path());
+                    contentValues.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, m.getRelease_date());
+                    contentValues.put(MovieContract.MovieEntry.COLUMN_TITLE, m.getTitle());
+                    contentValues.put(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE, m.getVote_average());
+                    // Insert the content values via a ContentResolver
+                    Uri uri = getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, contentValues);
+
+                   if(uri != null) {
+                        Toast.makeText(getBaseContext(), "Add to Favorite", Toast.LENGTH_LONG).show();
+                    }
+
+                    finish();
+                }
+            });
+        }else{
+            fav.setText("Unmark as Favorite");
+            fav.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int mRowsDeleted = 0;
+                    mCursor.moveToPosition(0);
+                    mRowsDeleted = getContentResolver().delete(
+                            MovieContract.MovieEntry.CONTENT_URI.buildUpon().appendPath(mCursor.getInt(mCursor.getColumnIndex(MovieContract.MovieEntry._ID))+"").build(),
+                            null,
+                            null
+                    );
+                    if(mRowsDeleted>0){
+                        Toast.makeText(getBaseContext(), "Unfavorited Movie", Toast.LENGTH_LONG).show();
+                    }
+                    finish();
+                }
+            });
+        }
 
         getSupportLoaderManager().initLoader(TRAILER_LOADER, null, this);
         loadMovieData(m);
@@ -204,30 +261,5 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
         if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);
         }
-    }
-
-    public void onClickAddMovie(View view) {
-
-        // Insert new task data via a ContentResolver
-        // Create new empty ContentValues object
-        ContentValues contentValues = new ContentValues();
-        // Put the task description and selected mPriority into the ContentValues
-        contentValues.put(MovieContract.MovieEntry.COLUMN_ID, m.getId());
-        contentValues.put(MovieContract.MovieEntry.COLUMN_OVERVIEW, m.getOverview());
-        contentValues.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH, m.getPoster_path());
-        contentValues.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, m.getRelease_date());
-        contentValues.put(MovieContract.MovieEntry.COLUMN_TITLE, m.getTitle());
-        contentValues.put(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE, m.getVote_average());
-        // Insert the content values via a ContentResolver
-        Uri uri = getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, contentValues);
-
-        // Display the URI that's returned with a Toast
-        // [Hint] Don't forget to call finish() to return to MainActivity after this insert is complete
-        if(uri != null) {
-            Toast.makeText(getBaseContext(), uri.toString(), Toast.LENGTH_LONG).show();
-        }
-
-        // Finish activity (this returns back to MainActivity)
-        finish();
     }
 }
