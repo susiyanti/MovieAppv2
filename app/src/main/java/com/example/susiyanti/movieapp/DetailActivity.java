@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.PersistableBundle;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
@@ -119,7 +120,7 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
                         Toast.makeText(getBaseContext(), "Add to Favorite", Toast.LENGTH_LONG).show();
                     }
 
-                    finish();
+                    fav.setText("Unmark as Favorite");
                 }
             });
         }else{
@@ -137,7 +138,7 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
                     if(mRowsDeleted>0){
                         Toast.makeText(getBaseContext(), "Unfavorited Movie", Toast.LENGTH_LONG).show();
                     }
-                    finish();
+                    fav.setText("Mark as Favorite");
                 }
             });
         }
@@ -261,5 +262,15 @@ public class DetailActivity extends AppCompatActivity implements MovieTrailerAda
         if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState, PersistableBundle persistentState) {
+        super.onRestoreInstanceState(savedInstanceState, persistentState);
     }
 }

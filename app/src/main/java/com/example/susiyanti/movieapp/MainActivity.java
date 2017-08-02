@@ -30,11 +30,12 @@ import com.example.susiyanti.movieapp.utilities.NetworkUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler, LoaderManager.LoaderCallbacks<Object>{
+public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler, LoaderManager.LoaderCallbacks<List<Movie>>{
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static String sort_by = "popular";
@@ -60,11 +61,15 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         GridLayoutManager layoutManager = new GridLayoutManager(this, 2);
         mRecyclerView.setLayoutManager(layoutManager);
 
-        if(savedInstanceState != null) {
+        if(savedInstanceState!=null){
             sort_by = savedInstanceState.getString("sort");
+            movies = savedInstanceState.getParcelableArrayList("movie");
+            mMovieAdapter.setMovieData(movies);
         }
+        if(movies==null) {
             getSupportLoaderManager().initLoader(MOVIE_LOADER, null, this);
             loadMovieData(sort_by);
+        }
     }
 
     private void loadMovieData(String sortedBy){
@@ -102,10 +107,8 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     }
 
     @Override
-    public Loader<Object> onCreateLoader(int id, final Bundle args) {
-        return new AsyncTaskLoader<Object>(this) {
-
-            Cursor mMovieData = null;
+    public Loader<List<Movie>> onCreateLoader(int id, final Bundle args) {
+        return new AsyncTaskLoader<List<Movie>>(this) {
 
             @Override
             protected void onStartLoading() {
@@ -113,15 +116,11 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
                     return;
                 }
                 mLoadingIndicator.setVisibility(View.VISIBLE);
-                //if(movies != null){
-                    //deliverResult(movies);
-               // }else{
-                    forceLoad();
-                //}
+                forceLoad();
             }
 
             @Override
-            public Object loadInBackground() {
+            public List<Movie> loadInBackground() {
                 if (args.size() == 0) {
                     return null;
                 }
@@ -129,11 +128,27 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
                     try{
                         Log.d("fav","ambil data dari db");
-                       return getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI,
+                        Cursor cursor = getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI,
                                 null,
                                 null,
                                 null,
                                 null);
+                        List<Movie> movies = new ArrayList<Movie>();
+                        if (cursor.moveToFirst()) {
+                            while (!cursor.isAfterLast()) {
+                                Movie m = new Movie();
+                                m.setId(cursor.getInt(cursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_ID)));
+                                m.setOverview(cursor.getString(cursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_OVERVIEW)));
+                                m.setPoster_path(cursor.getString(cursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_POSTER_PATH)));
+                                m.setRelease_date(cursor.getString(cursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_RELEASE_DATE)));
+                                m.setTitle(cursor.getString(cursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE)));
+                                m.setVote_average(cursor.getDouble(cursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE)));
+                                movies.add(m);
+                                cursor.moveToNext();
+                            }
+                        }
+                        cursor.close();
+                        return movies;
                     }catch (Exception e){
                         Log.e(TAG, "Failed to asynchronously load data.");
                         e.printStackTrace();
@@ -173,41 +188,23 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
                     }
                 }
             }
-
-            @Override
-            public void deliverResult(Object data) {
-
-                if(data instanceof Cursor){
-                    Log.d("fav", "ada cursor "+((Cursor) data).getCount());
-                    mMovieData = (Cursor)data;
-                }else{
-                    movies = (List<Movie>) data;
-                }
-                super.deliverResult(data);
-            }
         };
     }
 
     @Override
-    public void onLoadFinished(Loader<Object> loader,Object data) {
+    public void onLoadFinished(Loader<List<Movie>> loader, List<Movie> data) {
         mLoadingIndicator.setVisibility(View.INVISIBLE);
         if (data != null) {
             showMovieDataView();
-            if(data instanceof Cursor){
-                Log.d("fav", "ganti cursor");
-                mMovieAdapter.setMovieData(null);
-                mMovieAdapter.swapCursor((Cursor)data);
-            }else{
-                mMovieAdapter.setMovieData((List<Movie>) data);
-            }
-
+            movies =  data;
+            mMovieAdapter.setMovieData(data);
         } else {
             showErrorMessage();
         }
     }
 
     @Override
-    public void onLoaderReset(Loader<Object> loader) {
+    public void onLoaderReset(Loader<List<Movie>> loader) {
 
     }
 
@@ -232,8 +229,6 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
                 loadMovieData(sort_by);
                 return true;
             case R.id.sort_fav:
-                Toast.makeText(this,"fasv", Toast.LENGTH_SHORT);
-                Log.d("fav","muncullah");
                 sort_by = "fav";
                 loadMovieData(sort_by);
                 return true;
@@ -245,5 +240,13 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString("sort", sort_by);
+        outState.putParcelableArrayList("movie", (ArrayList<? extends Parcelable>) movies);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        sort_by = savedInstanceState.getString("sort");
+        movies = savedInstanceState.getParcelableArrayList("movie");
     }
 }
